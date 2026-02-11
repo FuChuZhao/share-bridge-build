@@ -1,0 +1,65 @@
+name: build
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Private source repo ref (branch/tag/sha)"
+        required: true
+        default: "main"
+      artifact_name:
+        description: "Artifact base name"
+        required: true
+        default: "share-bridge-dist"
+
+permissions:
+  contents: read
+
+env:
+  # Update this to your private source repo SSH URL.
+  SOURCE_REPO_SSH_URL: "git@github.com:FuChuZhao/share-bridge.git"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH (read-only deploy key)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SOURCE_REPO_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Clone private source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone "$SOURCE_REPO_SSH_URL" source
+          cd source
+          git checkout "${{ inputs.source_ref }}"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build (Rust core daemon)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          cargo run -p xtask -- build
+
+      - name: Upload artifact (short retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}-${{ matrix.os }}
+          path: source/dist/
+          retention-days: 1
