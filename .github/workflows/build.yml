@@ -93,7 +93,7 @@ jobs:
               cp -r build/windows/x64/runner/Release/* "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/"
               ;;
             macos-latest)
-              flutter build macos --release --no-codesign
+              flutter build macos --release
               mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
               cp -R build/macos/Build/Products/Release/*.app "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               ;;
