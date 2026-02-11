@@ -1,4 +1,4 @@
-name: build
+name: test
 
 on:
   workflow_dispatch:
@@ -10,17 +10,16 @@ on:
       artifact_name:
         description: "Artifact base name"
         required: true
-        default: "share-bridge-dist"
+        default: "share-bridge-test"
 
 permissions:
   contents: read
 
 env:
-  # Update this to your private source repo SSH URL.
   SOURCE_REPO_SSH_URL: "git@github.com:FuChuZhao/share-bridge.git"
 
 jobs:
-  build:
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -50,12 +49,12 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build (Rust core daemon)
+      - name: Rust tests
         shell: bash
         run: |
           set -euo pipefail
           cd source
-          cargo run -p xtask -- build
+          cargo test
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -71,37 +70,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
 
-      - name: Build (Flutter UI)
+      - name: Flutter tests (gesture + screenshots)
         shell: bash
         run: |
           set -euo pipefail
-          DIST_PLATFORM_DIR="$(ls -1 source/dist | head -n 1)"
-          DIST_DIR="source/dist/$DIST_PLATFORM_DIR"
-
           cd source/apps/share_bridge_ui
           flutter pub get
+          flutter test
 
-          case "${{ matrix.os }}" in
-            ubuntu-latest)
-              flutter build linux --release
-              mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
-              cp -r build/linux/x64/release/bundle/* "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/"
-              ;;
-            windows-latest)
-              flutter build windows --release
-              mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
-              cp -r build/windows/x64/runner/Release/* "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/"
-              ;;
-            macos-latest)
-              flutter build macos --release --no-codesign
-              mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
-              cp -R build/macos/Build/Products/Release/*.app "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
-              ;;
-          esac
-
-      - name: Upload artifact (short retention)
+      - name: Upload screenshots (short retention)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_name }}-${{ matrix.os }}
-          path: source/dist/
+          name: ${{ inputs.artifact_name }}-screenshots-${{ matrix.os }}
+          path: source/apps/share_bridge_ui/test_output/
+          if-no-files-found: ignore
           retention-days: 1
+
