@@ -76,7 +76,7 @@ jobs:
           set -euo pipefail
           cd source/apps/share_bridge_ui
           flutter pub get
-          flutter test
+          flutter test --update-goldens
 
       - name: Upload screenshots (short retention)
         if: always()
@@ -86,4 +86,3 @@ jobs:
           path: source/apps/share_bridge_ui/test_output/
           if-no-files-found: ignore
           retention-days: 1
-
