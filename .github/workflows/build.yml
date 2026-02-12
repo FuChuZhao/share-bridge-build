@@ -18,6 +18,7 @@ permissions:
 env:
   # Update this to your private source repo SSH URL.
   SOURCE_REPO_SSH_URL: "git@github.com:FuChuZhao/share-bridge.git"
+  SYNCTHING_VERSION: "2.0.14"
 
 jobs:
   build:
@@ -99,6 +100,42 @@ jobs:
               mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
               cp -R build/macos/Build/Products/Release/*.app "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-daemon" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
+              ;;
+          esac
+
+      - name: Bundle Syncthing (for folder sync)
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$SYNCTHING_VERSION"
+          DIST_PLATFORM_DIR="$(ls -1 source/dist | head -n 1)"
+          DIST_DIR="source/dist/$DIST_PLATFORM_DIR"
+          UI_DIR="$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
+
+          mkdir -p "$UI_DIR"
+          cd "$RUNNER_TEMP"
+
+          case "${{ matrix.os }}" in
+            ubuntu-latest)
+              ARCHIVE="syncthing-linux-amd64-v${VERSION}.tar.gz"
+              curl -fsSL -o "$ARCHIVE" "https://github.com/syncthing/syncthing/releases/download/v${VERSION}/${ARCHIVE}"
+              tar -xzf "$ARCHIVE"
+              cp "syncthing-linux-amd64-v${VERSION}/syncthing" "$UI_DIR/"
+              cp "syncthing-linux-amd64-v${VERSION}/LICENSE" "$UI_DIR/syncthing-LICENSE" || true
+              ;;
+            windows-latest)
+              ARCHIVE="syncthing-windows-amd64-v${VERSION}.zip"
+              curl -fsSL -o "$ARCHIVE" "https://github.com/syncthing/syncthing/releases/download/v${VERSION}/${ARCHIVE}"
+              7z x -y "$ARCHIVE" >/dev/null
+              cp "syncthing-windows-amd64-v${VERSION}/syncthing.exe" "$UI_DIR/"
+              cp "syncthing-windows-amd64-v${VERSION}/LICENSE" "$UI_DIR/syncthing-LICENSE" || true
+              ;;
+            macos-latest)
+              ARCHIVE="syncthing-macos-universal-v${VERSION}.zip"
+              curl -fsSL -o "$ARCHIVE" "https://github.com/syncthing/syncthing/releases/download/v${VERSION}/${ARCHIVE}"
+              unzip -q "$ARCHIVE"
+              cp "syncthing-macos-universal-v${VERSION}/syncthing" "$UI_DIR/"
+              cp "syncthing-macos-universal-v${VERSION}/LICENSE" "$UI_DIR/syncthing-LICENSE" || true
               ;;
           esac
 
