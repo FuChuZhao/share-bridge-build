@@ -95,6 +95,7 @@ jobs:
           set -euo pipefail
           cd source/apps/share_bridge_ui
           flutter pub get
+          flutter gen-l10n
           flutter test --update-goldens --coverage
 
       - name: Upload screenshots (short retention)

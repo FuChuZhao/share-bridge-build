@@ -81,6 +81,7 @@ jobs:
 
           cd source/apps/share_bridge_ui
           flutter pub get
+          flutter gen-l10n
 
           case "${{ matrix.os }}" in
             ubuntu-latest)
@@ -88,18 +89,21 @@ jobs:
               mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
               cp -r build/linux/x64/release/bundle/* "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/"
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-daemon" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
+              cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-relay" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               ;;
             windows-latest)
               flutter build windows --release
               mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
               cp -r build/windows/x64/runner/Release/* "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/"
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-daemon.exe" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
+              cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-relay.exe" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               ;;
             macos-latest)
               flutter build macos --release
               mkdir -p "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
               cp -R build/macos/Build/Products/Release/*.app "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-daemon" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
+              cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-relay" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               ;;
           esac
 
@@ -144,4 +148,54 @@ jobs:
         with:
           name: ${{ inputs.artifact_name }}-${{ matrix.os }}
           path: source/dist/
+          retention-days: 1
+
+  relay-android-arm64:
+    name: relay-android-arm64 (static)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH (read-only deploy key)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SOURCE_REPO_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Clone private source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone "$SOURCE_REPO_SSH_URL" source
+          cd source
+          git checkout "${{ inputs.source_ref }}"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Build (share-bridge-relay, static aarch64-unknown-linux-musl)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          cross build --release -p share-bridge-relay --target aarch64-unknown-linux-musl
+
+          OUT_DIR="dist/relay-android-arm64"
+          mkdir -p "$OUT_DIR"
+          cp "target/aarch64-unknown-linux-musl/release/share-bridge-relay" "$OUT_DIR/share-bridge-relay"
+
+      - name: Upload artifact (short retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}-relay-android-arm64
+          path: source/dist/relay-android-arm64/
           retention-days: 1
