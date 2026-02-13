@@ -98,6 +98,14 @@ jobs:
           flutter gen-l10n
           flutter test --update-goldens --coverage
 
+      - name: Flutter build apk (Android compile check)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source/apps/share_bridge_ui
+          flutter build apk --debug
+
       - name: Upload screenshots (short retention)
         if: always()
         uses: actions/upload-artifact@v4
