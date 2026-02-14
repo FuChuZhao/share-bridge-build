@@ -58,6 +58,27 @@ jobs:
           cd source
           cargo run -p xtask -- build
 
+      - name: Install cross (Android core binaries)
+        if: matrix.os == 'ubuntu-latest'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Bundle Android core binaries (daemon + relay)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+
+          cross build --release -p share-bridge-daemon --target aarch64-unknown-linux-musl
+          cross build --release -p share-bridge-relay --target aarch64-unknown-linux-musl
+
+          OUT_DIR="apps/share_bridge_ui/android/app/src/main/assets/bin"
+          mkdir -p "$OUT_DIR"
+          cp "target/aarch64-unknown-linux-musl/release/share-bridge-daemon" "$OUT_DIR/share-bridge-daemon"
+          cp "target/aarch64-unknown-linux-musl/release/share-bridge-relay" "$OUT_DIR/share-bridge-relay"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -90,6 +111,7 @@ jobs:
               cp -r build/linux/x64/release/bundle/* "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/"
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-daemon" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-relay" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
+              cp "$GITHUB_WORKSPACE/source/tool/integration/linux/"*.sh "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               ;;
             windows-latest)
               flutter build windows --release
@@ -97,6 +119,7 @@ jobs:
               cp -r build/windows/x64/runner/Release/* "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/"
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-daemon.exe" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-relay.exe" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
+              cp "$GITHUB_WORKSPACE/source/tool/integration/windows/"*.ps1 "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               ;;
             macos-latest)
               flutter build macos --release
@@ -106,6 +129,23 @@ jobs:
               cp "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-relay" "$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui/" || true
               ;;
           esac
+
+      - name: Build Android APK (debug)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIST_PLATFORM_DIR="$(ls -1 source/dist | head -n 1)"
+          DIST_DIR="source/dist/$DIST_PLATFORM_DIR"
+          UI_DIR="$GITHUB_WORKSPACE/$DIST_DIR/share-bridge-ui"
+
+          cd source/apps/share_bridge_ui
+          flutter pub get
+          flutter gen-l10n
+          flutter build apk --debug
+
+          mkdir -p "$UI_DIR/android"
+          cp build/app/outputs/flutter-apk/app-debug.apk "$UI_DIR/android/share-bridge-debug.apk"
 
       - name: Bundle Syncthing (for folder sync)
         shell: bash
