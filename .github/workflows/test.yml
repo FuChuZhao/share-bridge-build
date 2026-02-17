@@ -67,6 +67,24 @@ jobs:
           mkdir -p coverage
           cargo llvm-cov --workspace --lcov --output-path coverage/rust.lcov
 
+      - name: Build daemon/relay (debug, for netns tests)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          cargo build -p share-bridge-daemon -p share-bridge-relay
+
+      - name: Network simulation (Linux netns)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          sudo -E bash tool/ci/netns_discovery_smoke.sh
+          sudo -E bash tool/ci/netns_smoke.sh
+          sudo -E bash tool/ci/netns_tether_smoke.sh
+
       - name: Rust tests (Windows/macOS)
         if: matrix.os != 'ubuntu-latest'
         shell: bash
@@ -97,6 +115,20 @@ jobs:
           flutter pub get
           flutter gen-l10n
           flutter test --update-goldens --coverage
+
+      - name: Coverage summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          PY=python3
+          if ! command -v python3 >/dev/null 2>&1; then
+            PY=python
+          fi
+          "$PY" tool/ci/lcov_summary.py \
+            --label rust coverage/rust.lcov \
+            --label dart apps/share_bridge_ui/coverage/lcov.info
 
       - name: Install cross (Android core binaries)
         if: matrix.os == 'ubuntu-latest'
