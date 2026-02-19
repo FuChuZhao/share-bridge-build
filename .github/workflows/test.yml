@@ -11,6 +11,11 @@ on:
         description: "Artifact base name"
         required: true
         default: "share-bridge-test"
+      enable_netem:
+        description: "Enable tc netem (loss/jitter) in Linux netns tests"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -81,9 +86,10 @@ jobs:
         run: |
           set -euo pipefail
           cd source
-          sudo -E bash tool/ci/netns_discovery_smoke.sh
-          sudo -E bash tool/ci/netns_smoke.sh
-          sudo -E bash tool/ci/netns_tether_smoke.sh
+          sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_discovery_smoke.sh
+          sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_smoke.sh
+          sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_multi_device_smoke.sh
+          sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_tether_smoke.sh
 
       - name: Rust tests (Windows/macOS)
         if: matrix.os != 'ubuntu-latest'
