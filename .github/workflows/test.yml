@@ -90,6 +90,7 @@ jobs:
           sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_smoke.sh
           sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_multi_device_smoke.sh
           sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_tether_smoke.sh
+          sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_double_nat_smoke.sh
 
       - name: Rust tests (Windows/macOS)
         if: matrix.os != 'ubuntu-latest'
