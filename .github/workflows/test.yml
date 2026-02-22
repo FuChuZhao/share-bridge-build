@@ -97,6 +97,7 @@ jobs:
           sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_multi_device_smoke.sh
           sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_tether_smoke.sh
           sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_double_nat_smoke.sh
+          sudo -E env SHARE_BRIDGE_NETEM="${{ inputs.enable_netem }}" bash tool/ci/netns_tailnet_overlay_smoke.sh
 
       - name: Rust tests (Windows/macOS)
         if: matrix.os != 'ubuntu-latest'
@@ -166,10 +167,10 @@ jobs:
           cross build --release -p share-bridge-daemon --target aarch64-unknown-linux-musl
           cross build --release -p share-bridge-relay --target aarch64-unknown-linux-musl
 
-          OUT_DIR="apps/share_bridge_ui/android/app/src/main/assets/bin"
+          OUT_DIR="apps/share_bridge_ui/android/app/src/main/jniLibs/arm64-v8a"
           mkdir -p "$OUT_DIR"
-          cp "target/aarch64-unknown-linux-musl/release/share-bridge-daemon" "$OUT_DIR/share-bridge-daemon"
-          cp "target/aarch64-unknown-linux-musl/release/share-bridge-relay" "$OUT_DIR/share-bridge-relay"
+          cp "target/aarch64-unknown-linux-musl/release/share-bridge-daemon" "$OUT_DIR/libshare_bridge_daemon.so"
+          cp "target/aarch64-unknown-linux-musl/release/share-bridge-relay" "$OUT_DIR/libshare_bridge_relay.so"
 
       - name: Flutter build apk (Android compile check)
         if: matrix.os == 'ubuntu-latest'
