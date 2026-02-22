@@ -85,6 +85,22 @@ jobs:
           cp "target/aarch64-unknown-linux-musl/release/share-bridge-daemon" "$OUT_DIR/libshare_bridge_daemon.so"
           cp "target/aarch64-unknown-linux-musl/release/share-bridge-relay" "$OUT_DIR/libshare_bridge_relay.so"
 
+      - name: Bundle Syncthing (Android arm64, best-effort)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+
+          VERSION="$SYNCTHING_VERSION"
+          ARCHIVE="syncthing-linux-arm64-v${VERSION}.tar.gz"
+          curl -fsSL -o "$ARCHIVE" "https://github.com/syncthing/syncthing/releases/download/v${VERSION}/${ARCHIVE}"
+          tar -xzf "$ARCHIVE"
+
+          OUT_DIR="apps/share_bridge_ui/android/app/src/main/jniLibs/arm64-v8a"
+          mkdir -p "$OUT_DIR"
+          cp "syncthing-linux-arm64-v${VERSION}/syncthing" "$OUT_DIR/libshare_bridge_syncthing.so"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
