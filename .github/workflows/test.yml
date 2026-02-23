@@ -172,6 +172,20 @@ jobs:
           cp "target/aarch64-unknown-linux-musl/release/share-bridge-daemon" "$OUT_DIR/libshare_bridge_daemon.so"
           cp "target/aarch64-unknown-linux-musl/release/share-bridge-relay" "$OUT_DIR/libshare_bridge_relay.so"
 
+      - name: Setup stable debug keystore (Android)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        env:
+          ANDROID_DEBUG_KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANDROID_DEBUG_KEYSTORE_B64:-}" ]]; then
+            echo "ANDROID_DEBUG_KEYSTORE_B64 not set; using runner default debug keystore"
+            exit 0
+          fi
+          mkdir -p ~/.android
+          printf '%s' "$ANDROID_DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+
       - name: Flutter build apk (Android compile check)
         if: matrix.os == 'ubuntu-latest'
         shell: bash
