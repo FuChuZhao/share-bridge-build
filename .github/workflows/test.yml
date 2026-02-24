@@ -183,8 +183,9 @@ jobs:
             echo "ANDROID_DEBUG_KEYSTORE_B64 not set; using runner default debug keystore"
             exit 0
           fi
-          mkdir -p ~/.android
-          printf '%s' "$ANDROID_DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+          KEYSTORE_PATH="source/apps/share_bridge_ui/android/app/debug.keystore"
+          mkdir -p "$(dirname "$KEYSTORE_PATH")"
+          printf '%s' "$ANDROID_DEBUG_KEYSTORE_B64" | base64 -d > "$KEYSTORE_PATH"
 
       - name: Flutter build apk (Android compile check)
         if: matrix.os == 'ubuntu-latest'
